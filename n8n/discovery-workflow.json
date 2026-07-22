@@ -1,0 +1,99 @@
+{
+  "name": "News Discovery → Pipeline Intake",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "hours", "hoursInterval": 2 }] } },
+      "name": "Every 2 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.feedUrl }}",
+        "options": {}
+      },
+      "name": "Read RSS Feeds",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [400, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fan out the configured feed list\nconst feeds = ($env.RSS_FEEDS || '').split(',').map(f => f.trim()).filter(Boolean);\nreturn feeds.map(feedUrl => ({ json: { feedUrl } }));"
+      },
+      "name": "Feed List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"{{ $env.TAVILY_API_KEY }}\",\n  \"query\": \"market research industry news OR AI training data news OR human-in-the-loop AI\",\n  \"topic\": \"news\",\n  \"days\": 2,\n  \"max_results\": 10\n}",
+        "options": {}
+      },
+      "name": "Tavily News Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 450]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize RSS + Tavily items into one shape\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  if (j.results) {\n    for (const r of j.results) {\n      out.push({ json: { url: r.url, title: r.title, summary: r.content?.slice(0, 500) || '', published_at: r.published_date || null, source_kind: 'tavily' } });\n    }\n  } else if (j.link || j.url) {\n    out.push({ json: { url: j.link || j.url, title: j.title, summary: (j.contentSnippet || j.content || '').slice(0, 500), published_at: j.isoDate || j.pubDate || null, source_kind: 'rss' } });\n  }\n}\nreturn out;"
+      },
+      "name": "Normalize Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/raw_items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Prefer", "value": "resolution=ignore-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "name": "Upsert to Supabase raw_items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PIPELINE_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"event\": \"discovery_complete\" }",
+        "options": {}
+      },
+      "name": "Trigger Pipeline Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Every 2 Hours": { "main": [[ { "node": "Feed List", "type": "main", "index": 0 }, { "node": "Tavily News Search", "type": "main", "index": 0 } ]] },
+    "Feed List": { "main": [[ { "node": "Read RSS Feeds", "type": "main", "index": 0 } ]] },
+    "Read RSS Feeds": { "main": [[ { "node": "Normalize Items", "type": "main", "index": 0 } ]] },
+    "Tavily News Search": { "main": [[ { "node": "Normalize Items", "type": "main", "index": 0 } ]] },
+    "Normalize Items": { "main": [[ { "node": "Upsert to Supabase raw_items", "type": "main", "index": 0 } ]] },
+    "Upsert to Supabase raw_items": { "main": [[ { "node": "Trigger Pipeline Run", "type": "main", "index": 0 } ]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

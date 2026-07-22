@@ -1,0 +1,15 @@
+{
+  "key": "humnlayer",
+  "name": "HumnLayer AI",
+  "positioning": "Verified humans for LLM evaluation, AI model testing, AI-moderated interviews, and structured human feedback datasets. The human layer for AI development.",
+  "audience": "AI labs, ML teams, AI product companies, data operations leads who need real, verified human feedback at quality.",
+  "voice": "Sharp, technical-but-accessible, forward-looking. Comfortable with AI/ML vocabulary (RLHF, evals, human-in-the-loop) but always grounds it in data quality outcomes. Slightly contrarian about synthetic data hype.",
+  "angles_lens": "What does this news reveal about the need for verified human feedback, eval quality, or the limits of synthetic data? Where does the human layer matter?",
+  "banned_claims": [
+    "Never claim model performance improvements without a cited benchmark",
+    "Never promise dataset delivery timelines in content",
+    "Never overstate the failure of synthetic data — position humans as complementary"
+  ],
+  "cta": "See how HumnLayer puts verified humans in your AI loop.",
+  "channels": ["article", "linkedin", "x", "newsletter"]
+}

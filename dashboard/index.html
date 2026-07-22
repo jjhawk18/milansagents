@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Newsjack Approval Dashboard</title>
+<style>
+  :root { --bg:#0f1117; --card:#181b23; --line:#2a2e3a; --text:#e8eaf0; --dim:#9aa0ae;
+          --green:#2fbf71; --red:#e05252; --amber:#e0a83a; --blue:#4a9eda; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--text); }
+  header { display:flex; align-items:center; gap:16px; padding:16px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
+  h1 { font-size:18px; margin:0; }
+  .pill { font-size:12px; padding:2px 10px; border-radius:99px; border:1px solid var(--line); color:var(--dim); }
+  main { max-width:1000px; margin:0 auto; padding:24px; display:grid; gap:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; }
+  .meta { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; font-size:12px; }
+  .tag { padding:2px 8px; border-radius:6px; background:#22273300; border:1px solid var(--line); color:var(--dim); }
+  .tag.brand { color:var(--blue); border-color:var(--blue); }
+  .tag.score { color:var(--amber); border-color:var(--amber); }
+  .tag.status-pending_approval { color:var(--amber); border-color:var(--amber); }
+  .tag.status-approved { color:var(--green); border-color:var(--green); }
+  .tag.status-rejected, .tag.status-qc_failed { color:var(--red); border-color:var(--red); }
+  .tag.status-published { color:var(--green); border-color:var(--green); font-weight:600; }
+  .title { font-size:16px; font-weight:600; margin:4px 0 8px; }
+  .story { color:var(--dim); font-size:13px; margin-bottom:8px; }
+  textarea { width:100%; min-height:140px; background:#101218; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:10px; font-family:inherit; font-size:13px; line-height:1.5; }
+  .qc { font-size:12px; color:var(--dim); margin:8px 0; }
+  .qc .ok { color:var(--green); } .qc .bad { color:var(--red); }
+  .actions { display:flex; gap:8px; margin-top:10px; }
+  button { cursor:pointer; border:none; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; }
+  .approve { background:var(--green); color:#08130c; }
+  .reject { background:transparent; border:1px solid var(--red); color:var(--red); }
+  .publish-btn { background:var(--blue); color:#0a1622; margin-left:auto; }
+  .empty { text-align:center; color:var(--dim); padding:48px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📰 Newsjack Approval Dashboard</h1>
+  <span class="pill" id="count">loading…</span>
+  <button class="publish-btn" onclick="publishNow()">🚀 Publish approved</button>
+</header>
+<main id="queue"></main>
+<script>
+async function load() {
+  const items = await (await fetch('/api/queue')).json();
+  const pending = items.filter(i => i.status === 'pending_approval');
+  document.getElementById('count').textContent =
+    pending.length + ' pending · ' + items.filter(i=>i.status==='approved').length + ' approved · ' +
+    items.filter(i=>i.status==='published').length + ' published';
+  const order = { pending_approval: 0, approved: 1, qc_failed: 2, rejected: 3, published: 4, draft: 5 };
+  items.sort((a,b) => (order[a.status]??9) - (order[b.status]??9));
+  const el = document.getElementById('queue');
+  el.innerHTML = items.length ? '' : '<div class="empty">Queue is empty — run the pipeline first:<br><code>npm run demo</code></div>';
+  for (const item of items) el.appendChild(card(item));
+}
+
+function card(item) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  const qc = item.qc_report?.checks
+    ? Object.entries(item.qc_report.checks).map(([k,v]) =>
+        `<span class="${v.pass?'ok':'bad'}">${v.pass?'✓':'✗'} ${k}</span>`).join(' · ')
+    : '';
+  const editable = item.status === 'pending_approval';
+  div.innerHTML = `
+    <div class="meta">
+      <span class="tag brand">${item.brand}</span>
+      <span class="tag">${item.format}</span>
+      <span class="tag score">score ${item.story?.newsjack_score ?? '—'}</span>
+      <span class="tag status-${item.status}">${item.status.replace('_',' ')}</span>
+    </div>
+    <div class="title">${esc(item.title || '(untitled)')}</div>
+    <div class="story">Story: ${esc(item.story?.headline || '')} · Angle: ${esc(item.angle?.angle || '')}</div>
+    <textarea ${editable ? '' : 'readonly'} id="body-${item.id}">${esc(item.body)}</textarea>
+    <div class="qc">QC: ${qc || '—'}</div>
+    ${editable ? `
+    <div class="actions">
+      <button class="approve" onclick="decide('${item.id}','approved')">✓ Approve</button>
+      <button class="reject" onclick="decide('${item.id}','rejected')">✗ Reject</button>
+    </div>` : ''}`;
+  return div;
+}
+
+async function decide(id, decision) {
+  const body = document.getElementById('body-' + id).value;
+  await fetch(`/api/content/${id}/decision`, {
+    method: 'POST', headers: {'content-type':'application/json'},
+    body: JSON.stringify({ decision, editedBody: body, reviewer: 'jim' }),
+  });
+  load();
+}
+
+async function publishNow() {
+  const res = await (await fetch('/api/publish', { method: 'POST' })).json();
+  alert(res.error ? 'Error: ' + res.error : `Published ${res.published} item(s)`);
+  load();
+}
+
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+load();
+</script>
+</body>
+</html>

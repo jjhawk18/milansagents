@@ -1,0 +1,30 @@
+[
+  {
+    "url": "https://example.com/news/openai-human-feedback-shortage",
+    "title": "AI labs face a shortage of qualified human evaluators as model complexity grows",
+    "summary": "Leading AI labs report difficulty sourcing domain-expert human raters for model evaluation, with demand for specialized human feedback up 4x year over year.",
+    "published_at": "2026-07-21T14:00:00Z",
+    "source_kind": "tavily"
+  },
+  {
+    "url": "https://example.com/news/human-evaluator-shortage-analysis",
+    "title": "The human evaluator crunch: why AI companies can't find enough expert raters",
+    "summary": "An analysis of the growing gap between AI evaluation needs and the supply of verified, qualified human annotators.",
+    "published_at": "2026-07-21T18:30:00Z",
+    "source_kind": "rss"
+  },
+  {
+    "url": "https://example.com/news/synthetic-participants-study",
+    "title": "New study: synthetic 'AI participants' fail to replicate qualitative research findings",
+    "summary": "Researchers compared AI-simulated focus groups against real participant sessions and found significant divergence in emergent themes and purchase intent signals.",
+    "published_at": "2026-07-22T09:00:00Z",
+    "source_kind": "rss"
+  },
+  {
+    "url": "https://example.com/news/celebrity-gossip",
+    "title": "Celebrity couple announces surprise engagement at film premiere",
+    "summary": "Entertainment news about a celebrity engagement.",
+    "published_at": "2026-07-22T10:00:00Z",
+    "source_kind": "rss"
+  }
+]

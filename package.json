@@ -1,0 +1,19 @@
+{
+  "name": "newsjack-pipeline",
+  "version": "0.1.0",
+  "description": "News discovery → verification → newsjack scoring → brand content pipeline for Focus Insite / HumnLayer AI / JJHawk",
+  "type": "module",
+  "scripts": {
+    "demo": "DRY_RUN=true node src/pipeline.js run --source=fixtures",
+    "run": "node src/pipeline.js run",
+    "dashboard": "node dashboard/server.js",
+    "demo:dashboard": "DRY_RUN=true node dashboard/server.js",
+    "publish-approved": "node src/pipeline.js publish-approved"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "express": "^4.19.0",
+    "rss-parser": "^3.13.0"
+  }
+}

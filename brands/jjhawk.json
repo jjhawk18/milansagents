@@ -1,0 +1,15 @@
+{
+  "key": "jjhawk",
+  "name": "JJHawk (Jim Hawk personal brand)",
+  "positioning": "Founder voice: building at the intersection of market research, AI training data, and human-in-the-loop evaluation. Entrepreneurship, operating lessons, industry takes.",
+  "audience": "Founders, research industry peers, AI operators, potential clients and partners who buy from people before companies.",
+  "voice": "First person, candid, story-driven. Opens with a hook from real operating experience. Short paragraphs. Willing to take a position. Occasional humor, zero corporate speak.",
+  "angles_lens": "What's my honest take as an operator? What did I learn building Focus Insite / HumnLayer that this news confirms or contradicts?",
+  "banned_claims": [
+    "Never share client-confidential details",
+    "Never present revenue/growth numbers without Jim's explicit approval",
+    "Keep political and social commentary out of business content"
+  ],
+  "cta": "Follow for more from the front lines of research + AI.",
+  "channels": ["linkedin", "x", "video_script", "instagram"]
+}

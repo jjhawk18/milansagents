@@ -1,0 +1,15 @@
+{
+  "key": "focus_insite",
+  "name": "Focus Insite",
+  "positioning": "Qualitative market research recruitment — finding hard-to-reach participants for focus groups, IDIs, online communities, usability testing, and AI training feedback.",
+  "audience": "Market research agencies, consulting firms, brand insights teams, AI companies needing verified humans.",
+  "voice": "Practical, warm, insider. Speaks like a recruiter who has actually filled impossible quotas. No jargon-for-jargon's-sake, no hype. Uses concrete recruiting war stories and numbers.",
+  "angles_lens": "How does this news change what researchers need from participant recruitment? What does it mean for study feasibility, incidence rates, or participant quality?",
+  "banned_claims": [
+    "Never guarantee specific incidence rates or recruit timelines without qualification",
+    "Never claim to be the largest panel or database",
+    "Never disparage named competitors"
+  ],
+  "cta": "Talk to our team about your next hard-to-reach recruit.",
+  "channels": ["article", "linkedin", "newsletter", "facebook"]
+}
