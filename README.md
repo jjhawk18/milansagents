@@ -44,17 +44,38 @@ npm run demo:dashboard   # open http://localhost:3000, approve drafts, hit Publi
 
 Demo mode (`DRY_RUN=true`) uses fixture news items, deterministic mock LLM responses, and a local JSON store (`.local-store/db.json`) instead of Supabase — so you can see every stage work before wiring up credentials.
 
-## Going live
+## Real mode — minimal setup (subscription-powered, $0 extra)
 
-1. **LLM backend** — two options:
-   - **Claude Max/Pro subscription (default, $0 extra):** install [Claude Code](https://claude.com/claude-code), run `claude login` once on the machine that runs the pipeline (`claude setup-token` for headless servers). The pipeline shells out to `claude -p`, which draws from your plan's included usage. Note: this shares the same usage limits as your interactive Claude sessions.
-   - **Anthropic API (per-token billing):** set `ANTHROPIC_API_KEY` and `USE_CLAUDE_CODE=false`.
-2. **Supabase** — create a project, run `supabase/migrations/001_initial_schema.sql` in the SQL editor.
-3. **Env** — `cp .env.example .env`, fill in Supabase, Tavily, WordPress. Set `DRY_RUN=false`.
-4. **n8n** — import `n8n/discovery-workflow.json`; it polls RSS + Tavily every 2 hours, upserts into `raw_items`, and pings the pipeline webhook.
-5. **Run** — `npm run run` (or trigger from n8n), then `npm run dashboard` to review.
-6. **Publish** — approved articles go to WordPress as *drafts* (final button-press stays human); social formats POST to your GHL/Zapier webhook for LinkedIn / X / Facebook / Instagram / email distribution.
-7. **Analytics** — point GHL/WordPress webhooks at `POST /api/analytics` on the dashboard; `GET /api/analytics/summary` shows per-brand/format performance that feeds the learning loop.
+Requires only [Claude Code](https://claude.com/claude-code) installed and logged in on this machine (install: `curl -fsSL https://claude.ai/install.sh | bash`, then run `claude` once to log in; `claude setup-token` for headless servers). Then:
+
+```bash
+cp .env.example .env    # defaults are complete for minimal mode — no editing needed
+npm run run             # real news (RSS) + real Claude via your subscription
+npm run dashboard       # review at http://localhost:3000
+```
+
+In minimal mode the pipeline uses RSS discovery, your Claude Pro/Max plan's included usage for all LLM stages (shares your plan's usage limits), and a local JSON store (`.local-store/db.json`). Publishing logs a dry-run until you add credentials.
+
+## Optional upgrades (each is a line or two in `.env`)
+
+1. **Tavily** (`TAVILY_API_KEY`) — adds news *search* on top of RSS; free tier at tavily.com.
+2. **Supabase** (`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`) — shared database instead of the local file. Create a project, run `supabase/migrations/001_initial_schema.sql` in its SQL editor first.
+3. **WordPress** (`WORDPRESS_*`) — approved articles land as WP *drafts* (final button-press stays human).
+4. **Social** (`GHL_WEBHOOK_URL` or `ZAPIER_SOCIAL_WEBHOOK_URL`) — approved social formats POST to your webhook for LinkedIn / X / Facebook / Instagram / email distribution.
+5. **API billing** (`ANTHROPIC_API_KEY` + `USE_CLAUDE_CODE=false`) — switch LLM calls off your subscription onto per-token API billing.
+6. **n8n** — import `n8n/discovery-workflow.json`; polls RSS + Tavily every 2 hours, upserts into `raw_items` (needs Supabase), and pings the pipeline webhook.
+7. **Analytics** — point GHL/WordPress webhooks at `POST /api/analytics` on the dashboard; `GET /api/analytics/summary` shows per-brand/format performance for the learning loop.
+
+## Command cheat sheet
+
+| Command | What it does | Needs |
+|---|---|---|
+| `npm run demo` | Full pipeline on fixture news, offline | Nothing |
+| `npm run demo:dashboard` | Approval UI with the demo drafts | Nothing |
+| `npm run run` | Real pipeline on live news | Claude Code login |
+| `npm run dashboard` | Approval UI with real data | — |
+| `npm run publish-approved` | Push approved drafts to WordPress/social | WP / webhook creds (else dry-run) |
+| `node src/pipeline.js run --url=...` | Force a specific article through | Claude Code login |
 
 ## How the pieces work
 
