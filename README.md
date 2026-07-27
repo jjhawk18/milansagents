@@ -46,12 +46,15 @@ Demo mode (`DRY_RUN=true`) uses fixture news items, deterministic mock LLM respo
 
 ## Going live
 
-1. **Supabase** — create a project, run `supabase/migrations/001_initial_schema.sql` in the SQL editor.
-2. **Env** — `cp .env.example .env`, fill in Anthropic, Supabase, Tavily, WordPress. Set `DRY_RUN=false`.
-3. **n8n** — import `n8n/discovery-workflow.json`; it polls RSS + Tavily every 2 hours, upserts into `raw_items`, and pings the pipeline webhook.
-4. **Run** — `npm run run` (or trigger from n8n), then `npm run dashboard` to review.
-5. **Publish** — approved articles go to WordPress as *drafts* (final button-press stays human); social formats POST to your GHL/Zapier webhook for LinkedIn / X / Facebook / Instagram / email distribution.
-6. **Analytics** — point GHL/WordPress webhooks at `POST /api/analytics` on the dashboard; `GET /api/analytics/summary` shows per-brand/format performance that feeds the learning loop.
+1. **LLM backend** — two options:
+   - **Claude Max/Pro subscription (default, $0 extra):** install [Claude Code](https://claude.com/claude-code), run `claude login` once on the machine that runs the pipeline (`claude setup-token` for headless servers). The pipeline shells out to `claude -p`, which draws from your plan's included usage. Note: this shares the same usage limits as your interactive Claude sessions.
+   - **Anthropic API (per-token billing):** set `ANTHROPIC_API_KEY` and `USE_CLAUDE_CODE=false`.
+2. **Supabase** — create a project, run `supabase/migrations/001_initial_schema.sql` in the SQL editor.
+3. **Env** — `cp .env.example .env`, fill in Supabase, Tavily, WordPress. Set `DRY_RUN=false`.
+4. **n8n** — import `n8n/discovery-workflow.json`; it polls RSS + Tavily every 2 hours, upserts into `raw_items`, and pings the pipeline webhook.
+5. **Run** — `npm run run` (or trigger from n8n), then `npm run dashboard` to review.
+6. **Publish** — approved articles go to WordPress as *drafts* (final button-press stays human); social formats POST to your GHL/Zapier webhook for LinkedIn / X / Facebook / Instagram / email distribution.
+7. **Analytics** — point GHL/WordPress webhooks at `POST /api/analytics` on the dashboard; `GET /api/analytics/summary` shows per-brand/format performance that feeds the learning loop.
 
 ## How the pieces work
 
@@ -70,7 +73,7 @@ Demo mode (`DRY_RUN=true`) uses fixture news items, deterministic mock LLM respo
 
 ## Costs & models
 
-All LLM stages use `claude-opus-4-8` with adaptive thinking. Roughly 4–8 Claude calls per qualifying story (1 verify + 1 score + 1 angle and ~2 drafts + QC per brand). Tune `SCORE_THRESHOLD` and `MAX_FORMATS_PER_BRAND` to control volume.
+All LLM stages use Opus with adaptive thinking — via the Claude Code CLI on your subscription (default), or `claude-opus-4-8` on the API. Roughly 4–8 Claude calls per qualifying story (1 verify + 1 score + 1 angle and ~2 drafts + QC per brand). On subscription mode this costs nothing extra but draws from your Max plan's usage window; tune `SCORE_THRESHOLD` and `MAX_FORMATS_PER_BRAND` to control volume either way.
 
 ## Repo layout
 
