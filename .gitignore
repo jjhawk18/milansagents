@@ -3,3 +3,4 @@ node_modules/
 .local-store/
 demo-output/
 *.log
+logs/
