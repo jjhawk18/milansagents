@@ -73,6 +73,9 @@ app.get('/api/analytics/summary', async (_req, res) => {
   res.json(await learningSummary());
 });
 
-app.listen(config.dashboardPort, () => {
-  console.log(`Approval dashboard → http://localhost:${config.dashboardPort}`);
+// Behind a reverse proxy (Caddy/nginx), set DASHBOARD_BIND=127.0.0.1 so the
+// dashboard is only reachable through the proxy, never directly by IP:port.
+const bind = process.env.DASHBOARD_BIND || '0.0.0.0';
+app.listen(config.dashboardPort, bind, () => {
+  console.log(`Approval dashboard → http://${bind === '0.0.0.0' ? 'localhost' : bind}:${config.dashboardPort}`);
 });

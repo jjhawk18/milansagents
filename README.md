@@ -75,7 +75,9 @@ Runs the whole stack on an Ubuntu/Debian server (e.g. Contabo) — still on your
 3. `cp .env.example .env` and set `CLAUDE_CODE_OAUTH_TOKEN` (from step 1) and `DASHBOARD_PASSWORD` (anything strong).
 4. `sudo bash scripts/deploy-vps.sh`
 
-That installs Node + Claude Code, sets up a daily 07:30 run (systemd timer, missed runs fire on next boot) and an always-on dashboard at `http://<server-ip>:3000`, protected by your password. For HTTPS + a nice URL, put Caddy or nginx in front later.
+That installs Node + Claude Code, sets up a daily 07:30 run (systemd timer, missed runs fire on next boot) and an always-on dashboard at `http://<server-ip>:3000`, protected by your password.
+
+**Custom domain + HTTPS:** add a DNS A record for a subdomain (e.g. `agents.yourdomain.com`) pointing at the server IP, then run `sudo bash scripts/setup-domain.sh agents.yourdomain.com`. Caddy handles the SSL certificate automatically (and renews it); the dashboard is then only reachable at `https://agents.yourdomain.com` behind the password prompt, with direct `:3000` access closed off.
 
 (macOS equivalent for running on your own Mac: `bash scripts/install-mac-schedule.sh`.)
 
