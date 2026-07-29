@@ -66,6 +66,19 @@ In minimal mode the pipeline uses RSS discovery, your Claude Pro/Max plan's incl
 6. **n8n** — import `n8n/discovery-workflow.json`; polls RSS + Tavily every 2 hours, upserts into `raw_items` (needs Supabase), and pings the pipeline webhook.
 7. **Analytics** — point GHL/WordPress webhooks at `POST /api/analytics` on the dashboard; `GET /api/analytics/summary` shows per-brand/format performance for the learning loop.
 
+## Deploy to a VPS (always on, check from anywhere)
+
+Runs the whole stack on an Ubuntu/Debian server (e.g. Contabo) — still on your Claude subscription, no API tokens:
+
+1. On a machine where you're logged into Claude Code: `claude setup-token` → copy the token.
+2. SSH to the server, clone this repo, `cd` into it.
+3. `cp .env.example .env` and set `CLAUDE_CODE_OAUTH_TOKEN` (from step 1) and `DASHBOARD_PASSWORD` (anything strong).
+4. `sudo bash scripts/deploy-vps.sh`
+
+That installs Node + Claude Code, sets up a daily 07:30 run (systemd timer, missed runs fire on next boot) and an always-on dashboard at `http://<server-ip>:3000`, protected by your password. For HTTPS + a nice URL, put Caddy or nginx in front later.
+
+(macOS equivalent for running on your own Mac: `bash scripts/install-mac-schedule.sh`.)
+
 ## Command cheat sheet
 
 | Command | What it does | Needs |

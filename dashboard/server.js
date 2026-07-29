@@ -11,6 +11,19 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
 
+// Basic auth when DASHBOARD_PASSWORD is set (required for internet-facing
+// deployments; leave unset for localhost-only use).
+const PASSWORD = process.env.DASHBOARD_PASSWORD;
+if (PASSWORD) {
+  app.use((req, res, next) => {
+    const b64 = (req.headers.authorization || '').split(' ')[1] || '';
+    const [, pass] = Buffer.from(b64, 'base64').toString().split(':');
+    if (pass === PASSWORD) return next();
+    res.set('WWW-Authenticate', 'Basic realm="newsjack"');
+    res.status(401).send('Authentication required');
+  });
+}
+
 app.get('/', (_req, res) => res.sendFile(path.join(here, 'index.html')));
 
 // Queue: everything pending approval, plus recent decisions for context
