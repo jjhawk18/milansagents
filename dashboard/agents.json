@@ -1,11 +1,60 @@
 [
   {
     "key": "newsjack",
+    "type": "server",
     "name": "Newsjack Content Pipeline",
     "emoji": "📰",
     "description": "Reads industry news daily, verifies facts, scores newsjack potential, and drafts content for Focus Insite, HumnLayer AI, and JJHawk.",
     "page": "/newsjack",
     "timer": "newsjack-pipeline.timer",
     "log": "logs/pipeline.log"
+  },
+  {
+    "key": "morning-brief",
+    "type": "claude",
+    "name": "Morning Brief",
+    "emoji": "☕",
+    "description": "Daily briefing with schedule, priorities, and what needs attention.",
+    "invoke": "Say \"run my morning brief\" (or /morning) in Claude"
+  },
+  {
+    "key": "inbox-triage",
+    "type": "claude",
+    "name": "Inbox Triage",
+    "emoji": "📧",
+    "description": "Sorts recent email into reply / action / FYI / noise and drafts replies in Jim's voice for approval.",
+    "invoke": "Say \"triage my inbox\" in Claude"
+  },
+  {
+    "key": "capture-route",
+    "type": "claude",
+    "name": "Capture & Route",
+    "emoji": "🧠",
+    "description": "Turns brain dumps into tasks, notes, people updates, and ideas, filed into Notion Assistant HQ.",
+    "invoke": "Say \"capture this\" in Claude and dump your notes"
+  },
+  {
+    "key": "meeting-prep",
+    "type": "claude",
+    "name": "Meeting Prep",
+    "emoji": "🗓️",
+    "description": "One-page prep sheet before meetings (people, context, talking points); debrief mode logs notes and drafts follow-ups after.",
+    "invoke": "Say \"prep me for my next meeting\" or \"debrief\" in Claude"
+  },
+  {
+    "key": "voice-writer",
+    "type": "claude",
+    "name": "Voice Writer",
+    "emoji": "✍️",
+    "description": "Drafts emails and messages in Jim's voice using his Notion voice profile and people notes.",
+    "invoke": "Say \"write as me\" or \"draft an email to...\" in Claude"
+  },
+  {
+    "key": "tech-stack",
+    "type": "claude",
+    "name": "Focus Insite Tech Stack",
+    "emoji": "🧰",
+    "description": "Context brain: teaches Claude the company, brands, and every tool in the stack so other agents give stack-aware answers.",
+    "invoke": "Works automatically behind the scenes in Claude"
   }
 ]

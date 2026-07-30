@@ -27,6 +27,14 @@
            font-weight:600; font-size:13px; text-decoration:none; border-radius:8px; padding:9px 0; }
   .add { border:1px dashed var(--line); background:transparent; align-items:center; justify-content:center;
          color:var(--dim); font-size:13px; text-align:center; padding:32px 20px; }
+  .badge { font-size:11px; font-weight:600; border-radius:99px; padding:2px 9px; margin-left:auto; }
+  .badge.server { color:var(--green); border:1px solid var(--green); }
+  .badge.claude { color:var(--blue); border:1px solid var(--blue); }
+  .invoke { font-size:12px; color:var(--dim); border-top:1px solid var(--line); padding-top:10px; }
+  .invoke b { color:var(--text); font-weight:500; }
+  h3.section { grid-column:1/-1; font-size:13px; color:var(--dim); text-transform:uppercase;
+               letter-spacing:.08em; margin:8px 0 -6px; }
+  a.open.alt { background:transparent; border:1px solid var(--blue); color:var(--blue); }
 </style>
 </head>
 <body>
@@ -36,33 +44,58 @@
 </header>
 <main id="grid"></main>
 <script>
+function card(a) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  const badge = a.type === 'claude'
+    ? '<span class="badge claude">runs in Claude</span>'
+    : '<span class="badge server">runs on server</span>';
+  const counts = a.counts
+    ? `<div class="stats">
+         <span class="stat pending"><b>${a.counts.pending}</b> pending review</span>
+         <span class="stat"><b>${a.counts.approved}</b> approved</span>
+         <span class="stat"><b>${a.counts.published}</b> published</span>
+       </div>`
+    : '';
+  const meta = (a.last_activity || a.next_run)
+    ? `<div class="meta">
+        ${a.last_activity ? 'Last activity: ' + new Date(a.last_activity).toLocaleString() + '<br>' : ''}
+        ${a.next_run ? 'Next run: ' + esc(a.next_run) : ''}
+       </div>`
+    : '';
+  const action = a.page
+    ? `<a class="open" href="${a.page}">Open</a>`
+    : `<div class="invoke"><b>To use:</b> ${esc(a.invoke || '')}</div>
+       <a class="open alt" href="https://claude.ai" target="_blank">Open Claude ↗</a>`;
+  div.innerHTML = `
+    <h2>${a.emoji || '🤖'} ${esc(a.name)} ${badge}</h2>
+    <div class="desc">${esc(a.description)}</div>
+    ${counts}${meta}${action}`;
+  return div;
+}
+
 async function load() {
   const agents = await (await fetch('/api/agents')).json();
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
-  for (const a of agents) {
-    const div = document.createElement('div');
-    div.className = 'card';
-    const counts = a.counts
-      ? `<span class="stat pending"><b>${a.counts.pending}</b> pending review</span>
-         <span class="stat"><b>${a.counts.approved}</b> approved</span>
-         <span class="stat"><b>${a.counts.published}</b> published</span>`
-      : '';
-    div.innerHTML = `
-      <h2>${a.emoji || '🤖'} ${esc(a.name)}</h2>
-      <div class="desc">${esc(a.description)}</div>
-      <div class="stats">${counts}</div>
-      <div class="meta">
-        ${a.last_activity ? 'Last activity: ' + new Date(a.last_activity).toLocaleString() + '<br>' : ''}
-        ${a.next_run ? 'Next run: ' + esc(a.next_run) : ''}
-      </div>
-      <a class="open" href="${a.page}">Open</a>`;
-    grid.appendChild(div);
-  }
+
+  const servers = agents.filter(a => a.type !== 'claude');
+  const claudes = agents.filter(a => a.type === 'claude');
+
+  const h1 = document.createElement('h3');
+  h1.className = 'section'; h1.textContent = 'Autonomous — run on a schedule';
+  grid.appendChild(h1);
+  for (const a of servers) grid.appendChild(card(a));
+
   const add = document.createElement('div');
   add.className = 'card add';
-  add.textContent = '+ Future agents appear here automatically when added to dashboard/agents.json';
+  add.textContent = '+ New scheduled agents appear here when added to dashboard/agents.json';
   grid.appendChild(add);
+
+  const h2 = document.createElement('h3');
+  h2.className = 'section'; h2.textContent = 'On demand — live in Claude';
+  grid.appendChild(h2);
+  for (const a of claudes) grid.appendChild(card(a));
 }
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 load();
