@@ -1,0 +1,11 @@
+[
+  {
+    "key": "newsjack",
+    "name": "Newsjack Content Pipeline",
+    "emoji": "📰",
+    "description": "Reads industry news daily, verifies facts, scores newsjack potential, and drafts content for Focus Insite, HumnLayer AI, and JJHawk.",
+    "page": "/newsjack",
+    "timer": "newsjack-pipeline.timer",
+    "log": "logs/pipeline.log"
+  }
+]

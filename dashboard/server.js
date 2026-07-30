@@ -1,9 +1,11 @@
 // Approval dashboard — review QC'd drafts, approve/reject, trigger publish.
 import express from 'express';
+import fs from 'node:fs';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { store } from '../src/lib/store.js';
-import { config } from '../src/config.js';
+import { config, ROOT } from '../src/config.js';
 import { publishApproved } from '../src/stages/publish.js';
 import { recordEvent, learningSummary } from '../src/stages/analytics.js';
 
@@ -24,7 +26,36 @@ if (PASSWORD) {
   });
 }
 
-app.get('/', (_req, res) => res.sendFile(path.join(here, 'index.html')));
+// Agent hub home + per-agent pages
+app.get('/', (_req, res) => res.sendFile(path.join(here, 'home.html')));
+app.get('/newsjack', (_req, res) => res.sendFile(path.join(here, 'index.html')));
+
+app.get('/api/agents', async (_req, res) => {
+  const registry = JSON.parse(fs.readFileSync(path.join(here, 'agents.json'), 'utf8'));
+  const out = [];
+  for (const agent of registry) {
+    const info = { ...agent };
+    try { info.last_activity = fs.statSync(path.join(ROOT, agent.log)).mtime; } catch { info.last_activity = null; }
+    info.next_run = agent.timer ? await nextTimerRun(agent.timer) : null;
+    if (agent.key === 'newsjack') {
+      const content = await store.select('content');
+      info.counts = {
+        pending: content.filter(c => c.status === 'pending_approval').length,
+        approved: content.filter(c => c.status === 'approved').length,
+        published: content.filter(c => c.status === 'published').length,
+      };
+    }
+    out.push(info);
+  }
+  res.json(out);
+});
+
+function nextTimerRun(timer) {
+  return new Promise(resolve => {
+    execFile('systemctl', ['show', timer, '--property=NextElapseUSecRealtime', '--value'],
+      (err, stdout) => resolve(err ? null : (stdout.trim() || null)));
+  });
+}
 
 // Queue: everything pending approval, plus recent decisions for context
 app.get('/api/queue', async (_req, res) => {
