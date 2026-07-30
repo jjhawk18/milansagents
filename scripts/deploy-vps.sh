@@ -99,9 +99,37 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# --- HawkEye: Mon/Wed/Fri 07:15 America/New_York (set HAWKEYE_ENABLED=false in .env to disable) ---
+cat > /etc/systemd/system/hawkeye-scan.service <<EOF
+[Unit]
+Description=HawkEye market intelligence scan
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=$REPO
+ExecStart=$(command -v node) src/hawkeye/run.js
+Environment=PATH=$JOB_PATH
+StandardOutput=append:$REPO/logs/hawkeye.log
+StandardError=append:$REPO/logs/hawkeye.log
+EOF
+
+cat > /etc/systemd/system/hawkeye-scan.timer <<EOF
+[Unit]
+Description=HawkEye Mon/Wed/Fri morning scan
+
+[Timer]
+OnCalendar=Mon,Wed,Fri *-*-* 07:15:00 America/New_York
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
 systemctl daemon-reload
 systemctl enable --now newsjack-dashboard.service
 systemctl enable --now newsjack-pipeline.timer
+systemctl enable --now hawkeye-scan.timer
 systemctl restart newsjack-dashboard.service
 
 IP="$(curl -fs4 --max-time 5 ifconfig.me || hostname -I | awk '{print $1}')"

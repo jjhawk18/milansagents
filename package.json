@@ -8,7 +8,10 @@
     "run": "node src/pipeline.js run",
     "dashboard": "node dashboard/server.js",
     "demo:dashboard": "DRY_RUN=true node dashboard/server.js",
-    "publish-approved": "node src/pipeline.js publish-approved"
+    "publish-approved": "node src/pipeline.js publish-approved",
+    "hawkeye": "node src/hawkeye/run.js",
+    "hawkeye:demo": "DRY_RUN=true node src/hawkeye/run.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

@@ -31,7 +31,7 @@ GOOD=()
 echo "Testing ${#CANDIDATES[@]} candidate feeds..."
 for url in "${CANDIDATES[@]}"; do
   [ -z "$url" ] && continue
-  if node scripts/test-feed.mjs "$url"; then
+  if node scripts/check-feed.mjs "$url"; then
     GOOD+=("$url")
   fi
 done

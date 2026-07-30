@@ -10,6 +10,16 @@
     "log": "logs/pipeline.log"
   },
   {
+    "key": "hawkeye",
+    "type": "server",
+    "name": "HawkEye — Market Intelligence",
+    "emoji": "🦅",
+    "description": "Watches competitors, buyers, and partners: website changes, funding, hiring, positioning shifts. Delivers a Mon/Wed/Fri intelligence brief with scores, buyer-intent signals, and recommended actions.",
+    "page": "/hawkeye",
+    "timer": "hawkeye-scan.timer",
+    "log": "logs/hawkeye.log"
+  },
+  {
     "key": "morning-brief",
     "type": "claude",
     "name": "Morning Brief",

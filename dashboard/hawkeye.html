@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HawkEye — Market Intelligence</title>
+<style>
+  :root { --bg:#0f1117; --card:#181b23; --line:#2a2e3a; --text:#e8eaf0; --dim:#9aa0ae;
+          --green:#2fbf71; --red:#e05252; --amber:#e0a83a; --blue:#4a9eda; --purple:#a78bfa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
+  header { display:flex; align-items:center; gap:14px; padding:14px 22px; border-bottom:1px solid var(--line);
+           position:sticky; top:0; background:var(--bg); z-index:2; flex-wrap:wrap; }
+  h1 { font-size:17px; margin:0; }
+  header a.back { color:var(--dim); text-decoration:none; font-size:13px; }
+  nav { display:flex; gap:4px; margin-left:auto; flex-wrap:wrap; }
+  nav button { background:transparent; border:1px solid var(--line); color:var(--dim); border-radius:8px;
+               padding:7px 14px; font-size:13px; cursor:pointer; }
+  nav button.on { color:var(--text); border-color:var(--blue); background:#1b2533; }
+  .scanbtn { background:var(--blue); color:#0a1622; border:none; border-radius:8px; padding:8px 14px;
+             font-weight:600; font-size:13px; cursor:pointer; }
+  main { max-width:1060px; margin:0 auto; padding:22px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .meta { display:flex; flex-wrap:wrap; gap:6px; font-size:11px; margin-bottom:8px; }
+  .tag { padding:2px 8px; border-radius:6px; border:1px solid var(--line); color:var(--dim); }
+  .band-critical { color:#fff; background:var(--red); border-color:var(--red); font-weight:700; }
+  .band-high { color:var(--red); border-color:var(--red); }
+  .band-medium { color:var(--amber); border-color:var(--amber); }
+  .band-low { color:var(--dim); }
+  .band-noise { color:#555; }
+  .hl { font-size:15px; font-weight:600; margin:2px 0 6px; }
+  .row { font-size:13px; color:var(--dim); line-height:1.55; margin:4px 0; }
+  .row b { color:var(--text); font-weight:600; }
+  .src a { color:var(--blue); font-size:12px; }
+  select, input, textarea { background:#101218; color:var(--text); border:1px solid var(--line);
+      border-radius:7px; padding:7px 9px; font-size:13px; font-family:inherit; }
+  .filters { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .empty { text-align:center; color:var(--dim); padding:40px; }
+  h3.sec { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:20px 0 8px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:720px){ .grid2{grid-template-columns:1fr} }
+  button.mini { background:transparent; border:1px solid var(--line); color:var(--dim); border-radius:6px;
+                padding:4px 10px; font-size:12px; cursor:pointer; }
+  button.mini.danger { border-color:var(--red); color:var(--red); }
+  .addform { display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); align-items:end; }
+  ul { margin:6px 0; padding-left:20px; } li { font-size:13px; color:var(--dim); margin:3px 0; }
+  li b { color:var(--text); }
+  pre.diff { background:#101218; border:1px solid var(--line); border-radius:8px; padding:10px;
+             font-size:12px; white-space:pre-wrap; color:var(--dim); max-height:220px; overflow:auto; }
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="/">← All agents</a>
+  <h1>🦅 HawkEye — Market Intelligence</h1>
+  <nav>
+    <button data-tab="brief" class="on">Brief</button>
+    <button data-tab="signals">Signals</button>
+    <button data-tab="buyers">Buyer Intent</button>
+    <button data-tab="watchlist">Watchlist</button>
+    <button data-tab="changes">Site Changes</button>
+  </nav>
+  <button class="scanbtn" onclick="scanAll()">🔍 Scan now</button>
+</header>
+<main id="view"></main>
+<script>
+let TAB = 'brief';
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  TAB = b.dataset.tab;
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+const $ = html => { const d = document.createElement('div'); d.innerHTML = html; return d; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const api = (p, opt) => fetch('/api/hawkeye/' + p, opt ? { headers:{'content-type':'application/json'}, ...opt } : undefined).then(r => r.json());
+
+async function scanAll() {
+  await api('scan', { method:'POST', body:'{}' });
+  alert('Scan started — results appear here in a few minutes (watch the card counts).');
+}
+
+async function render() {
+  const view = document.getElementById('view');
+  view.innerHTML = '<div class="empty">Loading…</div>';
+  if (TAB === 'brief') return renderBrief(view);
+  if (TAB === 'signals') return renderSignals(view, false);
+  if (TAB === 'buyers') return renderSignals(view, true);
+  if (TAB === 'watchlist') return renderWatchlist(view);
+  if (TAB === 'changes') return renderChanges(view);
+}
+
+// ---- Brief ----
+async function renderBrief(view) {
+  const briefs = await api('briefs');
+  view.innerHTML = '';
+  if (!briefs.length) {
+    view.innerHTML = '<div class="empty">No brief yet. Hit “Scan now”, wait a few minutes, then refresh.<br>Scheduled briefs arrive Mon / Wed / Fri at 7:15 AM ET.</div>';
+    return;
+  }
+  const sel = $(`<div class="filters"><select id="bsel">${briefs.map((b,i) =>
+    `<option value="${i}">${new Date(b.created_at).toLocaleString()}${i===0?' (latest)':''}</option>`).join('')}</select></div>`);
+  view.appendChild(sel);
+  const show = i => {
+    view.querySelectorAll('.bwrap').forEach(e => e.remove());
+    const b = briefs[i].brief, w = $(`<div class="bwrap"></div>`);
+    w.appendChild($(`<div class="card"><h3 class="sec" style="margin-top:0">Executive takeaway</h3><div class="row">${esc(b.executive_takeaway)}</div></div>`));
+    const devs = (b.top_developments||[]).map(d => `
+      <div class="card"><div class="meta"><span class="tag">${esc(d.company)}</span><span class="tag">${esc(d.signal_type)}</span><span class="tag band-${d.score>=80?'critical':d.score>=65?'high':d.score>=45?'medium':'low'}">${d.score}/100</span></div>
+      <div class="row"><b>What changed:</b> ${esc(d.what_changed)}</div>
+      <div class="row"><b>Why it matters:</b> ${esc(d.why_it_matters)}</div>
+      <div class="row"><b>Response:</b> ${esc(d.recommended_response)}</div>
+      <div class="src">${(d.source_urls||[]).map(u=>`<a href="${esc(u)}" target="_blank">source</a>`).join(' · ')}</div></div>`).join('');
+    w.appendChild($(`<h3 class="sec">Top developments</h3>${devs}`));
+    const list = (title, items) => items?.length ? `<h3 class="sec">${title}</h3><div class="card"><ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+    w.appendChild($(list('Buyer-intent signals', b.buyer_intent_signals)));
+    w.appendChild($(list('Competitor messaging shifts', b.messaging_shifts)));
+    w.appendChild($(`<div class="grid2">
+      <div>${list('Focus Insite implications', b.focus_insite_implications)}</div>
+      <div>${list('Human Layer AI implications', b.human_layer_implications)}</div></div>`));
+    w.appendChild($(list('Recommended actions (top 3)', b.recommended_actions)));
+    const c = b.content_opportunity, p = b.prospecting_opportunity;
+    if (c) w.appendChild($(`<h3 class="sec">Content opportunity</h3><div class="card">
+      <div class="row"><b>Hook:</b> ${esc(c.hook)}</div><div class="row"><b>Jim's POV:</b> ${esc(c.jims_pov)}</div>
+      <div class="row"><b>Format:</b> ${esc(c.format)} · <b>Brand:</b> ${esc(c.brand)} · <b>CTA:</b> ${esc(c.cta)}</div></div>`));
+    if (p) w.appendChild($(`<h3 class="sec">Prospecting opportunity (draft only — never auto-sent)</h3><div class="card">
+      <div class="row"><b>${esc(p.company)}</b> — ${esc(p.trigger)}</div>
+      <div class="row"><b>Target:</b> ${esc(p.target_role)} · <b>Angle:</b> ${esc(p.outreach_angle)}</div>
+      <div class="row"><b>Draft opening:</b> ${esc(p.draft_opening)}</div></div>`));
+    view.appendChild(w);
+  };
+  sel.querySelector('select').onchange = e => show(Number(e.target.value));
+  show(0);
+}
+
+// ---- Signals / Buyer intent ----
+const STATUSES = ['new','reviewed','action_needed','assigned','in_progress','completed','dismissed','noise'];
+async function renderSignals(view, buyersOnly) {
+  let signals = await api('signals');
+  if (buyersOnly) signals = signals.filter(s => s.has_buyer_intent && s.status !== 'noise');
+  view.innerHTML = '';
+  const f = $(`<div class="filters">
+    <select id="fband"><option value="">All priorities</option><option>critical</option><option>high</option><option>medium</option><option>low</option><option>noise</option></select>
+    <select id="fstatus"><option value="">All statuses</option>${STATUSES.map(s=>`<option>${s}</option>`).join('')}</select>
+    <input id="fsearch" placeholder="Search company or headline…" style="flex:1;min-width:180px">
+  </div>`);
+  view.appendChild(f);
+  const listEl = $(`<div></div>`); view.appendChild(listEl);
+  const draw = () => {
+    const band = f.querySelector('#fband').value, st = f.querySelector('#fstatus').value,
+          q = f.querySelector('#fsearch').value.toLowerCase();
+    const rows = signals.filter(s =>
+      (!band || s.priority_band === band) && (!st || s.status === st) &&
+      (!q || (s.company_name + ' ' + s.headline).toLowerCase().includes(q)));
+    listEl.innerHTML = rows.length ? '' : '<div class="empty">No signals match. Run a scan or loosen filters.</div>';
+    for (const s of rows) listEl.appendChild(signalCard(s));
+  };
+  f.querySelectorAll('select,input').forEach(el => el.oninput = draw);
+  draw();
+}
+
+function signalCard(s) {
+  const bi = s.has_buyer_intent && s.buyer_intent ? `
+    <div class="row"><b>Buyer intent:</b> ${esc(s.buyer_intent.likely_need)} · <b>Titles:</b> ${esc((s.buyer_intent.target_titles||[]).join(', '))} · <b>Confidence:</b> ${esc(s.buyer_intent.confidence)}</div>
+    <div class="row"><b>Outreach angle:</b> ${esc(s.buyer_intent.outreach_angle)}</div>
+    <div class="row"><b>Draft opening (not sent):</b> ${esc(s.buyer_intent.draft_opening)}</div>` : '';
+  const d = $(`<div class="card">
+    <div class="meta">
+      <span class="tag">${esc(s.company_name)}</span>
+      ${(s.signal_type||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
+      <span class="tag band-${esc(s.priority_band)}">${esc(s.priority_band)} · ${s.total_score}/100</span>
+      <span class="tag">${new Date(s.detected_date).toLocaleDateString()}</span>
+    </div>
+    <div class="hl">${esc(s.headline)}</div>
+    <div class="row"><b>What changed:</b> ${esc(s.what_changed)}</div>
+    <div class="row"><b>Why it matters:</b> ${esc(s.why_it_matters)}</div>
+    <div class="row"><b>Focus Insite:</b> ${esc(s.focus_insite_implication)}</div>
+    <div class="row"><b>Human Layer AI:</b> ${esc(s.human_layer_implication)}</div>
+    <div class="row"><b>Action:</b> ${esc(s.recommended_action)} <span class="tag">owner: ${esc(s.action_owner)}</span></div>
+    ${bi}
+    <div class="row src">${(s.source_urls||[]).map(u=>`<a href="${esc(u)}" target="_blank">${esc(shortUrl(u))}</a>`).join(' · ')}</div>
+    <div class="row">Status: <select data-id="${s.id}">${STATUSES.map(x=>`<option ${x===s.status?'selected':''}>${x}</option>`).join('')}</select></div>
+  </div>`);
+  d.querySelector('select').onchange = async e => {
+    await api('signals/' + s.id + '/status', { method:'POST', body: JSON.stringify({ status: e.target.value }) });
+  };
+  return d;
+}
+const shortUrl = u => { try { return new URL(u).hostname; } catch { return u.slice(0,30); } };
+
+// ---- Watchlist ----
+const CATEGORIES = ['focus_insite_competitor','humnlayer_competitor','adjacent_threat','potential_buyer','potential_partner','potential_acquisition','ai_lab','healthcare_ai_company','expert_network','data_annotation_company','market_research_company','research_technology_platform','staffing_talent_platform','synthetic_data_company','voice_multilingual_company'];
+async function renderWatchlist(view) {
+  const companies = await api('companies');
+  view.innerHTML = '';
+  const add = $(`<div class="card"><h3 class="sec" style="margin-top:0">Add company</h3>
+    <div class="addform">
+      <input id="aname" placeholder="Company name *">
+      <input id="asite" placeholder="https://website.com">
+      <select id="abiz"><option value="both">Both businesses</option><option value="focus_insite">Focus Insite</option><option value="humnlayer">Human Layer AI</option></select>
+      <select id="aprio"><option value="1">Priority 1 (top)</option><option value="2" selected>Priority 2</option><option value="3">Priority 3</option></select>
+      <select id="acat">${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
+      <button class="scanbtn" id="aadd">Add</button>
+    </div></div>`);
+  add.querySelector('#aadd').onclick = async () => {
+    const name = add.querySelector('#aname').value.trim();
+    if (!name) return alert('Name required');
+    await api('companies', { method:'POST', body: JSON.stringify({
+      name, website: add.querySelector('#asite').value.trim(),
+      business: add.querySelector('#abiz').value, priority: add.querySelector('#aprio').value,
+      categories: [add.querySelector('#acat').value],
+    })});
+    render();
+  };
+  view.appendChild(add);
+  for (const c of companies) {
+    const d = $(`<div class="card">
+      <div class="meta">
+        ${c.is_seed ? '<span class="tag" style="color:var(--purple);border-color:var(--purple)">SEED — edit me</span>' : ''}
+        <span class="tag">${esc(c.business)}</span><span class="tag">P${c.priority}</span>
+        ${(c.categories||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}
+        <span class="tag" style="${c.active!==false?'color:var(--green);border-color:var(--green)':'color:var(--dim)'}">${c.active!==false?'active':'paused'}</span>
+      </div>
+      <div class="hl">${esc(c.name)} ${c.website?`<a class="src" href="${esc(c.website)}" target="_blank" style="font-size:12px;color:var(--blue)">${esc(shortUrl(c.website))}</a>`:''}</div>
+      <div class="row">${esc(c.description||'')}</div>
+      <div class="row">Monitored URLs: ${(c.urls||[]).length ? (c.urls||[]).map(u=>esc(shortUrl(u.url))).join(', ') : 'homepage only'}
+        · Last checked: ${c.last_checked ? new Date(c.last_checked).toLocaleString() : 'never'}</div>
+      <div class="row" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="mini" data-act="scan">Scan now</button>
+        <button class="mini" data-act="toggle">${c.active!==false?'Pause':'Resume'}</button>
+        <button class="mini" data-act="url">+ Add URL</button>
+        <button class="mini danger" data-act="del">Delete</button>
+      </div></div>`);
+    d.querySelector('[data-act=scan]').onclick = async () => { await api('scan',{method:'POST',body:JSON.stringify({company_id:c.id})}); alert(`Scanning ${c.name} — check Signals in a couple of minutes.`); };
+    d.querySelector('[data-act=toggle]').onclick = async () => { await api('companies/'+c.id,{method:'POST',body:JSON.stringify({active:c.active===false})}); render(); };
+    d.querySelector('[data-act=url]').onclick = async () => {
+      const url = prompt('Public page URL to monitor (services, pricing, careers, press):');
+      if (!url) return;
+      const kind = prompt('What kind of page? (services / pricing / careers / news)', 'services') || 'services';
+      await api('companies/'+c.id,{method:'POST',body:JSON.stringify({urls:[...(c.urls||[]),{kind,url}]})}); render();
+    };
+    d.querySelector('[data-act=del]').onclick = async () => {
+      if (!confirm(`Delete ${c.name} from the watchlist? Its history stays but no new scans will run.`)) return;
+      await api('companies/'+c.id,{method:'DELETE'}); render();
+    };
+    view.appendChild(d);
+  }
+}
+
+// ---- Site changes ----
+async function renderChanges(view) {
+  const changes = await api('changes');
+  view.innerHTML = changes.length ? '' : '<div class="empty">No meaningful website changes detected yet.</div>';
+  for (const s of changes) {
+    const d = $(`<div class="card">
+      <div class="meta"><span class="tag">${esc(s.company_name)}</span>
+        <span class="tag">change ratio ${s.diff_summary?.ratio ?? '—'}</span>
+        <span class="tag">${new Date(s.created_at).toLocaleString()}</span></div>
+      <div class="hl"><a href="${esc(s.url)}" target="_blank" style="color:var(--blue)">${esc(s.url)}</a></div>
+      <div class="row"><b>Added:</b></div><pre class="diff">${esc((s.diff_summary?.added_lines||[]).join('\n')||'—')}</pre>
+      ${(s.diff_summary?.removed_lines||[]).length?`<div class="row"><b>Removed:</b></div><pre class="diff">${esc(s.diff_summary.removed_lines.join('\n'))}</pre>`:''}
+      <button class="mini" data-act="dismiss">Dismiss as trivial</button></div>`);
+    d.querySelector('[data-act=dismiss]').onclick = async () => { await api('changes/'+s.id+'/dismiss',{method:'POST',body:'{}'}); render(); };
+    view.appendChild(d);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
