@@ -52,7 +52,7 @@ async function load() {
   const order = { pending_approval: 0, approved: 1, qc_failed: 2, rejected: 3, published: 4, draft: 5 };
   items.sort((a,b) => (order[a.status]??9) - (order[b.status]??9));
   const el = document.getElementById('queue');
-  el.innerHTML = items.length ? '' : '<div class="empty">Queue is empty — run the pipeline first:<br><code>npm run demo</code></div>';
+  el.innerHTML = items.length ? '' : '<div class="empty">Queue is empty — no drafts yet.<br>The pipeline checks the news daily at 7:30 and only drafts stories worth covering,<br>so an empty queue on a slow news day is normal.</div>';
   for (const item of items) el.appendChild(card(item));
 }
 
